@@ -73,7 +73,7 @@ zeu[np.isnan(bathy)]=np.nan
 bathy = np.squeeze(bathy[60:,:,:])
 ice[np.isnan(bathy)]=np.nan
 
-# now for obs***
+### -- Read in GlobColour data for same region
 
 import calendar
 from calendar import monthrange
@@ -133,6 +133,8 @@ zeu_avg[zeu_avg==0] = np.nan
 zeu_ts[1:85]=np.ravel(zeu_avg)
 zeu_ts[0]=zeu_ts[1]
 
+### ------ ###
+
 fig=plt.figure(figsize=(40,10))
 fig=plt.fill_between(np.linspace(60,84,37),0,1.3,color=(0.9,0.9,0.9))
 #fig=plt.fill_between(np.linspace(0,84,84),np.nansum(1e-6*np.nansum(ice_blue[:,0:100,300:400],2),1),60000)
@@ -183,6 +185,8 @@ plt.gca().yaxis.tick_right()
 plt.yticks([-74,-72,-70,-68,-66,-64],['74','72','70','68','66','64'],fontsize=15)
 plt.xticks([230,240,250,260,270],['130','120','110','100','90'],fontsize=15)
 plt.savefig('zeu_dec.png')
+
+### --- Here is the Supplementary figure 1 --- ###
 
 ice_dec = np.squeeze(ice_cp[49,:,:])
 chl_dec = np.squeeze(zeu[109,:,:])

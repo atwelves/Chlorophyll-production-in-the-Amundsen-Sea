@@ -1,33 +1,41 @@
-# script to process and plot sea ice data
+# script to process and plot surface heat flux outputs
 
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import xarray as xr
 
-# convert temperature to energy density
+### --- Set parameters --- ###
 
+# convert temperature to energy density
 spec = 4.186 * 1.02*1e6
  
-thresh = 0.25
-# seconds in day
+# set threshold for ice cover: 10% for main figures, vary from 0% to 25% to get supplementary figures 
+thresh = 0.10
 
+# seconds in day
 day = 86400
 
-# read netcdf file
+### ------ ###
 
+### --- Read in model outputs --- ###
+
+# read in total GREEN surface heat flux
 ds = xr.open_dataset('hol_green/surf/tflux_green.nc')
 green_flx = ds.surfDiag.values
 green_flx[green_flx==0] = np.nan
 
+# read in total BLUE surface heat flux
 ds = xr.open_dataset('hol_blue/surf/tflux_blue.nc')
 blue_flx = ds.surfDiag.values
 blue_flx[blue_flx==0] = np.nan
 
+# read in GREEN ice cover
 ds = xr.open_dataset('hol_green/seaIce/ice_green.nc')
 green_ice = ds.seaIceDiag.values
 green_ice[green_flx==0] = np.nan
 
+# read in BLUE ice cover
 ds = xr.open_dataset('hol_blue/seaIce/ice_blue.nc')
 blue_ice = ds.seaIceDiag.values
 blue_ice[blue_flx==0] = np.nan
@@ -37,37 +45,49 @@ blue_opn = np.copy(blue_flx)
 green_cov = np.copy(green_flx)
 blue_cov = np.copy(blue_flx)
 
+# read in GREEN latent heat flux
 ds = xr.open_dataset('hol_green/surfHeat/latent_green.nc')
 green_lat = ds.surfHeatDiag.values
 green_lat[green_flx==0] = np.nan
 
+# read in BLUE latent heat flux
 ds = xr.open_dataset('hol_blue/surfHeat/latent_blue.nc')
 blue_lat = ds.surfHeatDiag.values
 blue_lat[blue_flx==0] = np.nan
 
+# read in GREEN sensible heat flux
 ds = xr.open_dataset('hol_green/surfHeat/sensible_green.nc')
 green_sen = ds.surfHeatDiag.values
 green_sen[green_flx==0] = np.nan
 
+# read in BLUE sensible heat flux
 ds = xr.open_dataset('hol_blue/surfHeat/sensible_blue.nc')
 blue_sen = ds.surfHeatDiag.values
 blue_sen[blue_flx==0] = np.nan
 
+# read in GREEN longwave heat flux
 ds = xr.open_dataset('hol_green/surfHeat/longwave_green.nc')
 green_lw = -ds.surfHeatDiag.values
 green_lw[green_flx==0] = np.nan
 
+# read in BLUE longwave heat flux
 ds = xr.open_dataset('hol_blue/surfHeat/longwave_blue.nc')
 blue_lw = -ds.surfHeatDiag.values
 blue_lw[blue_flx==0] = np.nan
 
+# read in GREEN shortwave heat flux
 ds = xr.open_dataset('hol_green/surfHeat/shortwave_green.nc')
 green_sw = -ds.surfHeatDiag.values
 green_sw[green_flx==0] = np.nan
 
+# read in BLUE shortwave heat flux
 ds = xr.open_dataset('hol_blue/surfHeat/shortwave_blue.nc')
 blue_sw = -ds.surfHeatDiag.values
 blue_sw[blue_flx==0] = np.nan
+
+### ------ ###
+
+### --- apply ice cover threshold --- ###
 
 poly_blue  = np.zeros((84,384,600))
 poly_green = np.zeros((84,384,600))
@@ -102,6 +122,10 @@ diff_sen = green_sen-blue_sen
 diff_lw = green_lw-blue_lw
 diff_sw = green_sw-blue_sw
 
+### ------ ###
+
+### --- Integrate over open water area --- ###
+
 import MITgcmutils as mitgcm
 import MITgcmutils.mds as mds
 
@@ -131,34 +155,14 @@ lat_blue = np.multiply(blue_lat,rac)
 sen_green = np.multiply(green_sen,rac)
 sen_blue = np.multiply(blue_sen,rac)
 
-
 poly_blue = np.multiply(poly_blue,rac)
 poly_green = np.multiply(poly_green,rac)
 miz_blue = np.multiply(miz_blue,rac)
 miz_green = np.multiply(miz_green,rac)
 
-### --- here also want component of air-sea flux, averaged annualy
-#diff_lat = np.reshape(diff_lat, (7,12,384,600))
-#diff_sen = np.reshape(diff_sen, (7,12,384,600))
-#diff_lw = np.reshape(diff_lw, (7,12,384,600))
-#diff_sw = np.reshape(diff_sw, (7,12,384,600))
+### ------ ###
 
-#diff_lat = np.nanmean(diff_lat,0)
-#diff_sen = np.nanmean(diff_sen,0)
-#diff_lw = np.nanmean(diff_lw,0)
-#diff_sw = np.nanmean(diff_sw,0)
-
-
-
-# restrict to pine island bay area
-
-#diff_opn = np.nansum(np.nansum(diff_opn[:,0:100,300:400],2),1)
-#diff_cov = np.nansum(np.nansum(diff_cov[:,0:100,300:400],2),1)
-
-#diff_lat = np.nansum(np.nansum(diff_lat[:,0:100,300:400],2),1)
-#diff_sen = np.nansum(np.nansum(diff_sen[:,0:100,300:400],2),1)
-#diff_lw = np.nansum(np.nansum(diff_lw[:,0:100,300:400],2),1)
-#diff_sw = np.nansum(np.nansum(diff_sw[:,0:100,300:400],2),1)
+### --- Apply mask --- ###
 
 bathy=mds.rdmds('data/Depth');
 off_shelf=np.copy(bathy)
@@ -168,14 +172,8 @@ off_shelf[:95,100:]=0
 off_shelf[:150,500:]=0
 off_shelf[off_shelf>1000]=np.nan
 bathy[np.isnan(off_shelf)]=np.nan
-#plt.pcolormesh(bathy); plt.show()
-#shelf_mask=np.ones((384,600))
-#shelf_mask[np.isnan(bathy)]=0
-#shelf_mask = np.tile(shelf_mask,(84,1,1,1))
 
 bathy = np.tile(bathy,(84,1,1))
-
-print('got here')
 
 diff_lat[np.isnan(bathy)]=np.nan
 diff_sen[np.isnan(bathy)]=np.nan
@@ -233,7 +231,9 @@ poly_green = np.nansum(np.nansum(poly_green,2),1)
 miz_blue = np.nansum(np.nansum(miz_blue,2),1)
 miz_green = np.nansum(np.nansum(miz_green,2),1)
 
-### --- plot figures --- ###
+### ------ ###
+
+### --- convert units --- ###
 
 rad = 3.154e-11*(diff_sw+diff_lw)
 bulk = 3.154e-11*(diff_lat+diff_sen)
@@ -260,55 +260,18 @@ sen_blue  = sen_blue*3.154e-11
 poly_green = poly_green*3.154e-11
 poly_blue  = poly_blue*3.154e-11
 
-# sea ice coverage
+### ------ ###
+
+### --- LONGWAVE --- ###
 
 fig=plt.figure(figsize=(40,10))
-fig=plt.fill_between(np.linspace(0,84,84),diff_opn+diff_cov,alpha=0.3)
-plin=plt.plot(np.linspace(0,84,84),diff_opn,'k:',linewidth=5)
-plin=plt.plot(np.linspace(0,84,84),diff_cov,'k',linewidth=5)
-plt.yticks(fontsize=40)
-#plt.savefig('openVclosed.png')
-
-fig=plt.figure(figsize=(40,10))
-fig=plt.fill_between(np.linspace(0,84,84),np.cumsum(diff_opn+diff_cov),alpha=0.3)
-plin=plt.plot(np.linspace(0,84,84),np.cumsum(diff_opn),'k:',linewidth=5)
-plin=plt.plot(np.linspace(0,84,84),np.cumsum(diff_cov),'k',linewidth=5)
-plt.yticks(fontsize=40)
-#plt.savefig('openVclosed_cumalitive.png')
-
-fig=plt.figure(figsize=(40,10))
-fig=plt.fill_between(np.linspace(0,84,84),tot,color=(102/255,102/255,102/255),alpha=0.3)
-plin=plt.plot(np.linspace(0,84,84),bulk,color=(166/240,118/240,29/240),linewidth=10)
-plin=plt.plot(np.linspace(0,84,84),rad,color=(166/240,118/240,29/240),linestyle=':',linewidth=10)
-plt.yticks(fontsize=40)
-plt.xticks(np.linspace(0,84,15),['','08','','09','','10','','11','','12','','13','','14',''],fontsize=40)
-plt.ylabel('Heat anomaly (EJ/yr)',fontsize=60)
-plt.savefig('bulk_rad.png')
-
-fig=plt.figure(figsize=(40,10))
-fig=plt.fill_between(np.linspace(0,84,84),np.cumsum(tot)/12,color=(102/255,102/255,102/255),alpha=0.3)
-plin=plt.plot(np.linspace(0,84,84),np.cumsum(bulk)/12,color=(166/240,118/240,29/240),linewidth=10)
-plin=plt.plot(np.linspace(0,84,84),np.cumsum(rad)/12,color=(166/240,118/240,29/240),linewidth=10,linestyle=':')
-#plin=plt.plot(np.linspace(0,84,84),np.cumsum(diff_opn)/12,'b',linewidth=5)
-#plin=plt.plot(np.linspace(0,84,84),np.cumsum(shf_shf),'r',linewidth=5)
-plt.yticks(fontsize=40)
-plt.xticks(np.linspace(0,84,15),['','08','','09','','10','','11','','12','','13','','14',''],fontsize=40)
-plt.ylabel('Cumalitive anomaly (EJ)',fontsize=60)
-plt.savefig('bulk_rad_cumalitive.png')
-print(np.shape(green_ice))
-
-fig=plt.figure(figsize=(40,10))
-#fig=plt.fill_between(np.linspace(0,84,84),diff_opn+diff_cov,color=(253/255,180/255,98/255),alpha=0.7)
 plin=plt.plot(np.linspace(0.5,83.5,84),lw_green-lw_blue,color=(51/255,160/255,44/255),linewidth=10)
-#plin=plt.plot(np.linspace(0,84,84),open_green,color='green',linewidth=10)
 fig=plt.fill_between(np.linspace(60,84,37),-320,320,color=(0.9,0.9,0.9))
 fig=plt.bar(np.linspace(0.5,83.5,84),(lw_blue)*(poly_green-poly_blue)/poly_blue,color=(166/255,206/255,227/255),width=1.05)
-#plin=plt.plot(np.linspace(0,84,84),diff_cov,color=(130/255,130/255,130/255),linestyle=':',linewidth=10)
 plt.yticks(fontsize=40)
 plt.ylim(-320,320)
 plt.xlim(0,84)
 plt.grid(axis='x')
-#plt.xticks(np.linspace(0,84,15),['','08','','09','','10','','11','','12','','13','','14',''],fontsize=40)
 plt.xticks(np.linspace(0,84,29),['                         08','','','',
                                  '              |          09','','','',
                                  '              |          10','','','',
@@ -319,18 +282,18 @@ plt.xticks(np.linspace(0,84,29),['                         08','','','',
 plt.ylabel('Heat anomaly (EJ/yr)',fontsize=60)
 plt.savefig('lw.png')
 
+### ------ ###
+
+### --- SENSIBLE --- ###
+
 fig=plt.figure(figsize=(40,10))
-#fig=plt.fill_between(np.linspace(0,84,84),diff_opn+diff_cov,color=(253/255,180/255,98/255),alpha=0.7)
 plin=plt.plot(np.linspace(0.5,83.5,84),sen_green-sen_blue,color=(51/255,160/255,44/255),linewidth=10)
-#plin=plt.plot(np.linspace(0,84,84),open_green,color='green',linewidth=10)
 fig=plt.fill_between(np.linspace(60,84,37),-320,320,color=(0.9,0.9,0.9))
 fig=plt.bar(np.linspace(0.5,83.5,84),(sen_blue)*(poly_green-poly_blue)/poly_blue,color=(166/255,206/255,227/255),width=1.05)
-#plin=plt.plot(np.linspace(0,84,84),diff_cov,color=(130/255,130/255,130/255),linestyle=':',linewidth=10)
 plt.yticks(fontsize=40)
 plt.ylim(-320,320)
 plt.xlim(0,84)
 plt.grid(axis='x')
-#plt.xticks(np.linspace(0,84,15),['','08','','09','','10','','11','','12','','13','','14',''],fontsize=40)
 plt.xticks(np.linspace(0,84,29),['                         08','','','',
                                  '              |          09','','','',
                                  '              |          10','','','',
@@ -341,18 +304,18 @@ plt.xticks(np.linspace(0,84,29),['                         08','','','',
 plt.ylabel('Heat anomaly (EJ/yr)',fontsize=60)
 plt.savefig('sen.png')
 
+### ------ ###
+
+### --- LATENT --- ###
+
 fig=plt.figure(figsize=(40,10))
-#fig=plt.fill_between(np.linspace(0,84,84),diff_opn+diff_cov,color=(253/255,180/255,98/255),alpha=0.7)
 plin=plt.plot(np.linspace(0.5,83.5,84),lat_green-lat_blue,color=(51/255,160/255,44/255),linewidth=10)
-#plin=plt.plot(np.linspace(0,84,84),open_green,color='green',linewidth=10)
 fig=plt.fill_between(np.linspace(60,84,37),-320,320,color=(0.9,0.9,0.9))
 fig=plt.bar(np.linspace(0.5,83.5,84),(lat_blue)*(poly_green-poly_blue)/poly_blue,color=(166/255,206/255,227/255),width=1.05)
-#plin=plt.plot(np.linspace(0,84,84),diff_cov,color=(130/255,130/255,130/255),linestyle=':',linewidth=10)
 plt.yticks(fontsize=40)
 plt.ylim(-320,320)
 plt.xlim(0,84)
 plt.grid(axis='x')
-#plt.xticks(np.linspace(0,84,15),['','08','','09','','10','','11','','12','','13','','14',''],fontsize=40)
 plt.xticks(np.linspace(0,84,29),['                         08','','','',
                                  '              |          09','','','',
                                  '              |          10','','','',
@@ -363,18 +326,18 @@ plt.xticks(np.linspace(0,84,29),['                         08','','','',
 plt.ylabel('Heat anomaly (EJ/yr)',fontsize=60)
 plt.savefig('lat.png')
 
+### ------ ###
+
+### --- SHORTWAVE --- ###
+
 fig=plt.figure(figsize=(40,10))
-#fig=plt.fill_between(np.linspace(0,84,84),diff_opn+diff_cov,color=(253/255,180/255,98/255),alpha=0.7)
 plin=plt.plot(np.linspace(0.5,83.5,84),sw_green-sw_blue,color=(51/255,160/255,44/255),linewidth=10)
-#plin=plt.plot(np.linspace(0,84,84),open_green,color='green',linewidth=10)
 fig=plt.fill_between(np.linspace(60,84,37),-320,320,color=(0.9,0.9,0.9))
 fig=plt.bar(np.linspace(0.5,83.5,84),(sw_blue)*(poly_green-poly_blue)/poly_blue,color=(166/255,206/255,227/255),width=1.05)
-#plin=plt.plot(np.linspace(0,84,84),diff_cov,color=(130/255,130/255,130/255),linestyle=':',linewidth=10)
 plt.yticks(fontsize=40)
 plt.ylim(-320,320)
 plt.xlim(0,84)
 plt.grid(axis='x')
-#plt.xticks(np.linspace(0,84,15),['','08','','09','','10','','11','','12','','13','','14',''],fontsize=40)
 plt.xticks(np.linspace(0,84,29),['                         08','','','',
                                  '              |          09','','','',
                                  '              |          10','','','',
@@ -384,6 +347,10 @@ plt.xticks(np.linspace(0,84,29),['                         08','','','',
                                  '              |          14','','','',''],fontsize=40)
 plt.ylabel('Heat anomaly (EJ/yr)',fontsize=60)
 plt.savefig('sw.png')
+
+### ------ ###
+
+### --- Print out anomalies --- ###
 
 ct=60
 print('longwave:{}'.format(100*np.nanmean(lw_green[:ct]-lw_blue[:ct])/np.nanmean(lw_blue[:ct])))
@@ -395,7 +362,9 @@ print('open water:{}'.format(np.nanmean(open_green[:ct]-open_blue[:ct])))
 print('ice covered:{}'.format(np.nanmean(cov_green[:ct]-cov_blue[:ct])))
 print('total:{}'.format(np.nanmean(open_green[:ct]+cov_green[:ct]-cov_blue[:ct]-open_blue[:ct])))
 
-### --- pie chart --- ###
+### ------ ###
+
+### --- pie charts for supplement --- ###
 net=-np.nanmean(sw_green[:ct]+lw_green[:ct]+sen_green[:ct]+lat_green[:ct]-sw_blue[:ct]-lw_blue[:ct]-sen_blue[:ct]-lat_blue[:ct])
 srf=-np.nanmean(open_green[:ct]-open_blue[:ct])
 res=srf-net
@@ -408,22 +377,3 @@ plt.title('SIC < {:.0f}% | {:.1f} EJ/yr'.format(100*thresh,srf),fontsize=30)
 plt.savefig('{}_threshold.png'.format(thresh))
 #print('sw+lw+lat+sen:{}'.format(np.nanmean(sw_green[:ct]+lw_green[:ct]+sen_green[:ct]+lat_green[:ct]-sw_blue[:ct]-lw_blue[:ct]-sen_blue[:ct]-lat_blue[:ct])))
 #print('open water:{}'.format(np.nanmean(open_green[:ct]-open_blue[:ct])))
-
-fig=plt.figure(figsize=(40,10))
-fig=plt.fill_between(np.linspace(0,84,84),np.cumsum(diff_opn+diff_cov)/12,color=(253/255,180/255,98/255),alpha=0.7)
-plin=plt.plot(np.linspace(0,84,84),np.cumsum(diff_opn)/12,linewidth=10,color=(130/255,130/255,130/255))
-plin=plt.plot(np.linspace(0,84,84),np.cumsum(diff_cov)/12,linestyle=':',linewidth=10,color=(130/255,130/255,130/255))
-#plin=plt.plot(np.linspace(0,84,84),np.cumsum(shf_shf),'r',linewidth=5)
-plt.yticks(fontsize=40)
-plt.xticks(np.linspace(0,84,15),['','08','','09','','10','','11','','12','','13','','14',''],fontsize=40)
-plt.ylabel('Cumalitive anomaly (EJ)',fontsize=60)
-plt.savefig('open_closed_cumalitive.png')
-
-#fig=plt.figure(figsize=(40,20))
-#fig=plt.fill_between(np.linspace(0,12,12),diff_lat+diff_sen+diff_lw+diff_sw,alpha=0.3)
-#plin=plt.bar(np.linspace(0,12,12),diff_lat,color=(230/255,97/255,1/255,0.8),width=0.2)
-#plin=plt.bar(np.linspace(0.2,12.2,12),diff_sen,color=(253/255,184/255,99/255,0.8),width=0.2)
-#plin=plt.bar(np.linspace(0.4,12.4,12),diff_lw,color=(178/255,171/255,210/255,0.8),width=0.2)
-#plin=plt.bar(np.linspace(0.6,12.6,12),diff_sw,color=(94/255,60/255,154/255,0.8),width=0.2)
-#plt.yticks(fontsize=40)
-#plt.savefig('open_flux.png')
