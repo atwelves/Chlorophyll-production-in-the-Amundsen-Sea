@@ -82,6 +82,7 @@ blue_cov[blue_ice<thresh]=0
 
 poly_blue[blue_ice<thresh] = 1
 poly_green[green_ice<thresh] = 1
+poly_common = np.multiply(poly_blue,poly_green)
 miz_blue[blue_ice>thresh] = 1
 miz_green[green_ice>thresh] = 1
 
@@ -107,6 +108,7 @@ import MITgcmutils.mds as mds
 
 rac = mds.rdmds('data/RAC')
 rac=np.tile(rac,(84,1,1))
+#rac = rac/np.nansum(rac[0,:,:])
 
 diff_opn = np.multiply(diff_opn,rac)
 diff_cov = np.multiply(diff_cov,rac)
@@ -131,9 +133,9 @@ lat_blue = np.multiply(blue_lat,rac)
 sen_green = np.multiply(green_sen,rac)
 sen_blue = np.multiply(blue_sen,rac)
 
-
 poly_blue = np.multiply(poly_blue,rac)
 poly_green = np.multiply(poly_green,rac)
+poly_common = np.multiply(poly_common,rac)
 miz_blue = np.multiply(miz_blue,rac)
 miz_green = np.multiply(miz_green,rac)
 
@@ -174,7 +176,7 @@ bathy[np.isnan(off_shelf)]=np.nan
 #shelf_mask = np.tile(shelf_mask,(84,1,1,1))
 
 bathy = np.tile(bathy,(84,1,1))
-
+bathy[bathy==0] = np.nan
 print('got here')
 
 diff_lat[np.isnan(bathy)]=np.nan
@@ -202,8 +204,39 @@ sen_green[np.isnan(bathy)] = np.nan
 
 poly_blue[np.isnan(bathy)] = np.nan
 poly_green[np.isnan(bathy)] = np.nan
+poly_common[np.isnan(bathy)] = np.nan
 miz_blue[np.isnan(bathy)] = np.nan
 miz_green[np.isnan(bathy)] = np.nan
+
+lw_green_uni = np.copy(lw_green)
+lw_blue_uni  = np.copy(lw_blue )
+sen_green_uni = np.copy(sen_green)
+sen_blue_uni  = np.copy(sen_blue )
+lat_green_uni = np.copy(lat_green)
+lat_blue_uni  = np.copy(lat_blue )
+sw_green_uni = np.copy(sw_green)
+sw_blue_uni  = np.copy(sw_blue )
+
+
+lw_green[poly_common==0]=np.nan
+lw_blue[poly_common==0]=np.nan
+sen_green[poly_common==0]=np.nan
+sen_blue[poly_common==0]=np.nan
+lat_green[poly_common==0]=np.nan
+lat_blue[poly_common==0]=np.nan
+
+#lw_green_uni = np.copy(lw_green)
+#lw_blue_uni  = np.copy(lw_blue )
+
+lw_green_uni[poly_common>0]=np.nan
+lw_blue_uni[poly_common>0]=np.nan
+sen_green_uni[poly_common>0]=np.nan
+sen_blue_uni[poly_common>0]=np.nan
+lat_green_uni[poly_common>0]=np.nan
+lat_blue_uni[poly_common>0]=np.nan
+sw_green_uni[poly_common>0]=np.nan
+sw_blue_uni[poly_common>0]=np.nan
+
 
 diff_lat = np.nansum(np.nansum(diff_lat,2),1)
 diff_sen = np.nansum(np.nansum(diff_sen,2),1)
@@ -220,8 +253,17 @@ cov_green = np.nansum(np.nansum(cov_green,2),1)
 
 lw_blue = np.nansum(np.nansum(lw_blue,2),1)
 lw_green = np.nansum(np.nansum(lw_green,2),1)
-sw_blue = np.nansum(np.nansum(sw_blue,2),1)
-sw_green = np.nansum(np.nansum(sw_green,2),1)
+sw_blue = np.nanmean(np.nanmean(sw_blue,2),1)
+sw_green = np.nanmean(np.nanmean(sw_green,2),1)
+
+lw_blue_uni  = np.nansum(np.nansum(lw_blue_uni,2),1)
+lw_green_uni = np.nansum(np.nansum(lw_green_uni,2),1)
+sen_blue_uni  = np.nansum(np.nansum(sen_blue_uni,2),1)
+sen_green_uni = np.nansum(np.nansum(sen_green_uni,2),1)
+lat_blue_uni  = np.nansum(np.nansum(lat_blue_uni,2),1)
+lat_green_uni = np.nansum(np.nansum(lat_green_uni,2),1)
+sw_blue_uni  = np.nansum(np.nansum(sw_blue_uni,2),1)
+sw_green_uni = np.nansum(np.nansum(sw_green_uni,2),1)
 
 lat_blue = np.nansum(np.nansum(lat_blue,2),1)
 lat_green = np.nansum(np.nansum(lat_green,2),1)
@@ -230,6 +272,7 @@ sen_green = np.nansum(np.nansum(sen_green,2),1)
 
 poly_blue = np.nansum(np.nansum(poly_blue,2),1)
 poly_green = np.nansum(np.nansum(poly_green,2),1)
+poly_common = np.nansum(np.nansum(poly_common,2),1)
 miz_blue = np.nansum(np.nansum(miz_blue,2),1)
 miz_green = np.nansum(np.nansum(miz_green,2),1)
 
@@ -248,28 +291,27 @@ open_blue  = open_blue*3.154e-11
 cov_green = cov_green*3.154e-11
 cov_blue  = cov_blue*3.154e-11
 
-lw_green = lw_green*3.154e-11
-lw_blue  = lw_blue*3.154e-11
-sw_green = sw_green*3.154e-11
-sw_blue  = sw_blue*3.154e-11
-lat_green = lat_green*3.154e-11
-lat_blue  = lat_blue*3.154e-11
-sen_green = sen_green*3.154e-11
-sen_blue  = sen_blue*3.154e-11
+# sea ice coverage
 
-poly_green = poly_green*3.154e-11
-poly_blue  = poly_blue*3.154e-11
+print('lw com area: {}'.format(np.nansum(lw_green-lw_blue)))
+print('lw new area: {}'.format(np.nansum(lw_green_uni-lw_blue_uni)))
 
-fig=plt.figure(figsize=(40,10))
-plin=plt.plot(np.linspace(0.5,83.5,84),lw_green-lw_blue,color=(51/255,160/255,44/255),linewidth=10)
+print('lat com area: {}'.format(np.nansum(lat_green-lat_blue)))
+print('lat new area: {}'.format(np.nansum(lat_green_uni-lat_blue_uni)))
+
+print('sw com area: {}'.format(np.nansum(sw_green-sw_blue)))
+print('sw new area: {}'.format(np.nansum(sw_green_uni-sw_blue_uni)))
+
+# Figure 5b
+fig, ax=plt.subplots(figsize=(40,10))
+scale_fac = 0.05
 fig=plt.fill_between(np.linspace(60,84,37),-320,320,color=(0.9,0.9,0.9))
-fig=plt.bar(np.linspace(0.5,83.5,84),(lw_blue)*(poly_green-poly_blue)/poly_blue,color=(166/255,206/255,227/255),width=1.05)
-plt.yticks(fontsize=60)
-plt.yticks(np.linspace(-300,300,5))
-plt.ylim(-320,320)
+plt.plot(np.linspace(0,84,84),np.divide(sen_green,poly_common)-np.divide(sen_blue,poly_common) ,color=(51/255,160/255,44/255),linewidth=10)
+plt.fill_between(np.linspace(0,84,84),scale_fac*100*np.divide(np.divide(sen_green,poly_common)-np.divide(sen_blue,poly_common),np.divide(np.abs(sen_blue),poly_common)),color=(178/255,223/255,138/255))
+plt.yticks(fontsize=60,color=(51/255,160/255,44/255))
 plt.xlim(0,84)
-plt.grid(axis='x')
-plt.grid(axis='y')
+plt.grid()
+plt.ylim(-5,5)
 plt.xticks(np.linspace(0,84,29),['                   2008  ','','','',
                                  '              |    2009  ','','','',
                                  '              |    2010  ','','','',
@@ -277,8 +319,92 @@ plt.xticks(np.linspace(0,84,29),['                   2008  ','','','',
                                  '              |    2012  ','','','',
                                  '              |    2013  ','','','',
                                  '              |    2014  ','','','',''],fontsize=60)
-plt.ylabel('Anomaly (EJ yr⁻¹)',fontsize=70)
+secax = ax.secondary_yaxis('right')
+secax.set_yticks([-80*scale_fac,-40*scale_fac,0,40*scale_fac,80*scale_fac],['-80','-40','0','40','80'],fontsize=60,color=(178/255,223/255,138/255))
+secax.set_ylabel('    %',fontsize=70,rotation=0,color=(178/255,223/255,138/255))
+plt.ylabel('Anomaly (W m⁻²)',fontsize=70,color=(51/255,160/255,44/255))
+plt.yticks(fontsize=60)
+plt.savefig('sen_diff.png')
+
+# Figure 5c
+fig, ax=plt.subplots(figsize=(40,10))
+scale_fac = 0.05
+fig=plt.fill_between(np.linspace(60,84,37),-320,320,color=(0.9,0.9,0.9))
+plt.plot(np.linspace(0,84,84),np.divide(lat_green,poly_common)-np.divide(lat_blue,poly_common) ,color=(51/255,160/255,44/255),linewidth=10)
+plt.fill_between(np.linspace(0,84,84),scale_fac*100*np.divide(np.divide(lat_green,poly_common)-np.divide(lat_blue,poly_common),np.divide(np.abs(lat_blue),poly_common)),color=(178/255,223/255,138/255),alpha=1)
+plt.yticks(fontsize=60,color=(51/255,160/255,44/255))
+plt.xlim(0,84)
+plt.ylim(-5,5)
+plt.grid()
+plt.xticks(np.linspace(0,84,29),['                   2008  ','','','',
+                                 '              |    2009  ','','','',
+                                 '              |    2010  ','','','',
+                                 '              |    2011  ','','','',
+                                 '              |    2012  ','','','',
+                                 '              |    2013  ','','','',
+                                 '              |    2014  ','','','',''],fontsize=60)
+secax = ax.secondary_yaxis('right')
+secax.set_yticks([-80*scale_fac,-40*scale_fac,0,40*scale_fac,80*scale_fac],['-80','-40','0','40','80'],fontsize=60,color=(178/255,223/255,138/255))
+secax.set_ylabel('    %',fontsize=70,rotation=0,color=(178/255,223/255,138/255))
+plt.ylabel('Anomaly (W m⁻²)',fontsize=70,color=(51/255,160/255,44/255))
+plt.yticks(fontsize=60)
+plt.savefig('lat_diff.png')
+
+# Figure 5d
+fig, ax=plt.subplots(figsize=(40,10))
+scale_fac = 0.05
+fig=plt.fill_between(np.linspace(60,84,37),-320,320,color=(0.9,0.9,0.9))
+plt.plot(np.linspace(0,84,84),np.divide(lw_green,poly_common)-np.divide(lw_blue,poly_common) ,color=(51/255,160/255,44/255),linewidth=10)
+plt.fill_between(np.linspace(0,84,84),scale_fac*100*np.divide(np.divide(lw_green,poly_common)-np.divide(lw_blue,poly_common),np.divide(np.abs(lw_blue),poly_common)),color=(178/255,223/255,138/255),alpha=1)
+plt.yticks(fontsize=60,color=(51/255,160/255,44/255))
+plt.xlim(0,84)
+plt.ylim(-5,5)
+plt.grid()
+plt.xticks(np.linspace(0,84,29),['                   2008  ','','','',
+                                 '              |    2009  ','','','',
+                                 '              |    2010  ','','','',
+                                 '              |    2011  ','','','',
+                                 '              |    2012  ','','','',
+                                 '              |    2013  ','','','',
+                                 '              |    2014  ','','','',''],fontsize=60)
+secax = ax.secondary_yaxis('right')
+secax.set_yticks([-80*scale_fac,-40*scale_fac,0,40*scale_fac,80*scale_fac],['-80','-40','0','40','80'],fontsize=60,color=(178/255,223/255,138/255))
+secax.set_ylabel('    %',fontsize=70,rotation=0,color=(178/255,223/255,138/255))
+plt.ylabel('Anomaly (W m⁻²)',fontsize=70,color=(51/255,160/255,44/255))
+plt.yticks(fontsize=60)
 plt.savefig('lw_diff.png')
+
+# Figure 5a
+fig=plt.figure(figsize=(40,30))
+fig=plt.fill_between(np.linspace(60,84,37),-320,320,color=(0.9,0.9,0.9))
+plt.plot(np.linspace(0.5,83.5,84),np.divide(lat_green,poly_green),color=(51/255,160/255,44/255),linewidth=10)
+plt.plot(np.linspace(0.5,83.5,84),np.divide(sen_green,poly_green),color=(51/255,160/255,44/255),linewidth=10,linestyle='--')
+plt.plot(np.linspace(0.5,83.5,84),np.divide(lw_green,poly_green),color=(51/255,160/255,44/255),linewidth=10,linestyle=':')
+plt.yticks(fontsize=60)
+plt.yticks(np.linspace(-300,0,7))
+plt.ylim(-320,20)
+plt.xlim(0,84)
+plt.grid()
+plt.xticks(np.linspace(0,84,29),['                   2008  ','','','',
+                                 '              |    2009  ','','','',
+                                 '              |    2010  ','','','',
+                                 '              |    2011  ','','','',
+                                 '              |    2012  ','','','',
+                                 '              |    2013  ','','','',
+                                 '              |    2014  ','','','',''],fontsize=60)
+plt.ylabel('Energy flux (W m⁻²)',fontsize=70)
+plt.savefig('all_fluxes.png')
+
+print('sen')
+print((np.nanmean(np.divide(sen_green,poly_green))-np.nanmean(np.divide(sen_blue,poly_blue))))#*100/np.nanmean(np.divide(sen_blue,poly_blue)))
+print('lat')
+print((np.nanmean(np.divide(lat_green,poly_green))-np.nanmean(np.divide(lat_blue,poly_blue))))#*100/np.nanmean(np.divide(lat_blue,poly_blue)))
+print('lw')
+print((np.nanmean(np.divide(lw_green,poly_green))-np.nanmean(np.divide(lw_blue,poly_blue))))#*100/np.nanmean(np.divide(lw_blue,poly_blue)))
+print('open water')
+print((np.nanmean(poly_green)-np.nanmean(poly_blue))*100/np.nanmean(poly_blue))
+
+print(poly_blue)
 
 ct=60
 print('longwave:{}'.format(100*np.nanmean(lw_green[:ct]-lw_blue[:ct])/np.nanmean(lw_blue[:ct])))
@@ -289,19 +415,3 @@ print('sum:{}'.format(np.nanmean(lw_green[:ct]+sen_green[:ct]+lat_green[:ct]-lw_
 print('open water:{}'.format(np.nanmean(open_green[:ct]-open_blue[:ct])))
 print('ice covered:{}'.format(np.nanmean(cov_green[:ct]-cov_blue[:ct])))
 print('total:{}'.format(np.nanmean(open_green[:ct]+cov_green[:ct]-cov_blue[:ct]-open_blue[:ct])))
-
-### --- pie charts --- ###
-
-#Supplementary Figure 5
-net=-np.nanmean(sw_green[:ct]+lw_green[:ct]+sen_green[:ct]+lat_green[:ct]-sw_blue[:ct]-lw_blue[:ct]-sen_blue[:ct]-lat_blue[:ct])
-srf=-np.nanmean(open_green[:ct]-open_blue[:ct])
-res=srf-net
-print('pie chart')
-fig, ax = plt.subplots()
-sizes = [100*net/srf, 100*res/srf]
-labels = "{:.1f}%".format(100*net/srf), "{:.1f}%".format(100*res/srf)
-ax.pie(sizes,labels=labels,radius=np.sqrt(srf)/4,colors=((90/255,180/255,172/255),(216/255,179/255,101/255)),textprops={'fontsize': 25})
-plt.title('SIC < {:.0f}% | {:.1f} EJ/yr'.format(100*thresh,srf),fontsize=30)
-plt.savefig('{}_threshold.png'.format(thresh))
-#print('sw+lw+lat+sen:{}'.format(np.nanmean(sw_green[:ct]+lw_green[:ct]+sen_green[:ct]+lat_green[:ct]-sw_blue[:ct]-lw_blue[:ct]-sen_blue[:ct]-lat_blue[:ct])))
-#print('open water:{}'.format(np.nanmean(open_green[:ct]-open_blue[:ct])))
