@@ -1,6 +1,6 @@
 # This script plots upper ocean temperature profiles for GREEN and BLUE experiments, also mixed layers reported by Park et al. (2017)
 
-# For Supplementary Figures 2 and 3
+# For Supplementary Figures 3 and 4
 
 import numpy as np
 import matplotlib as mpl
