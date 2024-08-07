@@ -150,7 +150,7 @@ ice_cmap = ((118/255,42/255,131/255),(153/255,112/255,171/255),(194/255,165/255,
 
 mask_cmap = ((1,1,1),(0,0,0),(0.7,0.7,0.7))
 
-# Figure 4c
+# Figure 4d
 plt.figure(figsize=(40,10)); 
 pcol=plt.contourf(lon,lat,100*np.nanmean(new_sit_green[:5,:,:]-new_sit_blue[:5,:,:],0),np.linspace(-8,8,9),colors=ice_cmap,extend='both');
 cbar=plt.colorbar(extend='both')
@@ -184,7 +184,7 @@ new_sit_green = (new_sit_green[:,5,:,:]+new_sit_green[:,6,:,:]+new_sit_green[:,7
 new_sit_blue  = np.reshape(sit_blue,(7,12,384,600))
 new_sit_blue = (new_sit_blue[:,5,:,:]+new_sit_blue[:,6,:,:]+new_sit_blue[:,7,:,:])/3
 
-# Figure 4d
+# Figure 4c
 plt.figure(figsize=(40,10));
 pcol=plt.contourf(lon,lat,100*np.nanmean(new_sit_green[:5,:,:]-new_sit_blue[:5,:,:],0),np.linspace(-8,8,9),colors=ice_cmap,extend='both');
 cbar=plt.colorbar(extend='both')
